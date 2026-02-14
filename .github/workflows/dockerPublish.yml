@@ -1,12 +1,19 @@
-name: Production Docker Build & Deploy
+name: Production Docker Build & Deploy to Kubernetes
 
 on:
   push:
     branches:
       - main
 
+env:
+  DOCKER_IMAGE: ${{ secrets.DOCKERHUB_IMAGES_NAME }}/ecommercenodejs
+  IMAGE_TAG: ${{ github.run_number }}
+  EC2_USER: ubuntu
+
 jobs:
-  build-and-deploy:
+  # ---- Job 1: Build & Push Docker Image ----
+  build-and-push:
+    name: Build & Push Docker Image
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +26,7 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME  }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and Push Image
@@ -28,20 +35,65 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ secrets.DOCKERHUB_IMAGES_NAME }}/ecommercenodejs:${{ github.run_number }}
+            ${{ env.DOCKER_IMAGE }}:${{ env.IMAGE_TAG }}
+            ${{ env.DOCKER_IMAGE }}:latest
 
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            sudo docker pull ${{ secrets.DOCKERHUB_IMAGES_NAME }}/ecommercenodejs:${{ github.run_number }}
-            sudo docker stop demo-ecommerce-nodejs || true
-            sudo docker rm demo-ecommerce-nodejs || true
-            sudo docker run -d \
-                --restart unless-stopped \
-                -p 3000:3000 \
-                --name demo-ecommerce-nodejs \
-                ${{ secrets.DOCKERHUB_IMAGES_NAME }}/ecommercenodejs:${{ github.run_number }}  
+  # ---- Job 2: Deploy to Kubernetes Cluster ----
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Verify SSH connection
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection successful' && kubectl get nodes"
+
+      - name: Copy k8s manifests to EC2
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p /home/${{ env.EC2_USER }}/ecommerce-deploy"
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r k8s/ ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ env.EC2_USER }}/ecommerce-deploy/
+
+      - name: Deploy to Kubernetes
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "
+            set -e
+
+            DEPLOY_DIR=/home/${{ env.EC2_USER }}/ecommerce-deploy
+            DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
+            IMAGE_TAG=${{ env.IMAGE_TAG }}
+
+            echo '=== Updating image in deployment manifest ==='
+            sed -i \"s|devilvires/ecommercenodejs:tagname|\${DOCKER_IMAGE}:\${IMAGE_TAG}|g\" \${DEPLOY_DIR}/k8s/deployment.yaml
+
+            echo '=== Applying Kubernetes manifests ==='
+
+            kubectl apply -f \${DEPLOY_DIR}/k8s/deployment.yaml
+            kubectl apply -f \${DEPLOY_DIR}/k8s/service.yaml
+
+            echo '=== Waiting for rollout to complete ==='
+            kubectl rollout status deployment/ecommerce-app -n learndev --timeout=120s
+
+            echo '=== Deployment Status ==='
+            kubectl get pods -n learndev
+            kubectl get svc -n learndev
+
+            echo '=== Cleanup ==='
+            rm -rf \${DEPLOY_DIR}
+
+            echo '=== Deployment complete! ==='
+          "
+
+      - name: Cleanup SSH Key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key  
