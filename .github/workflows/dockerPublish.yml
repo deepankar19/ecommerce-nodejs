@@ -9,6 +9,7 @@ env:
   DOCKER_IMAGE: ${{ secrets.DOCKERHUB_IMAGES_NAME }}/ecommercenodejs
   IMAGE_TAG: ${{ github.run_number }}
   EC2_USER: ubuntu
+  KIND_CLUSTER_NAME: devilvires-cluster
 
 jobs:
   # ---- Job 1: Build & Push Docker Image ----
@@ -52,51 +53,74 @@ jobs:
         run: |
           mkdir -p ~/.ssh
           cat > ~/.ssh/deploy_key << 'EOF'
-          ${{ secrets.EC2_SSH_KEY }}   
+          ${{ secrets.EC2_SSH_KEY }}
           EOF
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Verify SSH connection
+      # ---- Verify SSH + KIND ----
+      - name: Verify SSH & Kubernetes
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "export KUBECONFIG=~/.kube/config && echo 'SSH connection successful' && kubectl get nodes"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+          ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
+            set -e
 
+            echo "=== Docker check ==="
+            docker ps >/dev/null
+
+            echo "=== Export kubeconfig ==="
+            mkdir -p ~/.kube
+            kind export kubeconfig --name ${{ env.KIND_CLUSTER_NAME }}
+            export KUBECONFIG=\$HOME/.kube/config
+
+            kubectl get nodes
+          EOF
+
+      # ---- Copy Manifests ----
       - name: Copy k8s manifests to EC2
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p /home/${{ env.EC2_USER }}/ecommerce-deploy"
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r k8s/ ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ env.EC2_USER }}/ecommerce-deploy/
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+          ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} \
+          "mkdir -p /home/${{ env.EC2_USER }}/ecommerce-deploy"
 
+          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -r k8s/ \
+          ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }}:/home/${{ env.EC2_USER }}/ecommerce-deploy/
+
+      # ---- Deploy ----
       - name: Deploy to Kubernetes
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+          ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} << EOF
             set -e
-            export KUBECONFIG=~/.kube/config
+
+            mkdir -p ~/.kube
+            kind export kubeconfig --name ${{ env.KIND_CLUSTER_NAME }}
+            export KUBECONFIG=\$HOME/.kube/config
 
             DEPLOY_DIR=/home/${{ env.EC2_USER }}/ecommerce-deploy
             DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
             IMAGE_TAG=${{ env.IMAGE_TAG }}
 
-            echo '=== Updating image in deployment manifest ==='
-            sed -i \"s|devilvires/ecommercenodejs:tagname|\${DOCKER_IMAGE}:\${IMAGE_TAG}|g\" \${DEPLOY_DIR}/k8s/deployment.yaml
+            echo "=== Updating image ==="
+            sed -i "s|DOCKERHUB_USERNAME/ecommercenodejs:latest|\${DOCKER_IMAGE}:\${IMAGE_TAG}|g" \
+              \${DEPLOY_DIR}/k8s/deployment.yaml
 
-            echo '=== Applying Kubernetes manifests ==='
-
+            echo "=== Applying manifests ==="
+            kubectl apply -f \${DEPLOY_DIR}/k8s/namespace.yaml
             kubectl apply -f \${DEPLOY_DIR}/k8s/deployment.yaml
             kubectl apply -f \${DEPLOY_DIR}/k8s/service.yaml
 
-            echo '=== Waiting for rollout to complete ==='
-            kubectl rollout status deployment/ecommerce-app -n learndev --timeout=120s
+            echo "=== Waiting for rollout ==="
+            kubectl rollout status deployment/ecommerce-app -n learndev --timeout=180s
 
-            echo '=== Deployment Status ==='
+            echo "=== Status ==="
             kubectl get pods -n learndev
             kubectl get svc -n learndev
 
-            echo '=== Cleanup ==='
             rm -rf \${DEPLOY_DIR}
-
-            echo '=== Deployment complete! ==='
-          "
+            echo "=== Deployment complete ==="
+          EOF
 
       - name: Cleanup SSH Key
         if: always()
-        run: rm -f ~/.ssh/deploy_key  
+        run: rm -f ~/.ssh/deploy_key
