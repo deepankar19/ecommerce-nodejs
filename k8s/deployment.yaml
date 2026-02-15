@@ -22,7 +22,7 @@ spec:
     spec:
       containers:
       - name: ecommerce
-        image: DOCKER_USERNAME/ecommerce:latest
+        image: DOCKER_USERNAME/ecommercenodejs:latest
         ports:
         - containerPort: 3000
           protocol: TCP
