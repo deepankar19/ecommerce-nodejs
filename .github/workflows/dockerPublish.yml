@@ -59,7 +59,7 @@ jobs:
 
       - name: Verify SSH connection
         run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "echo 'SSH connection successful' && kubectl get nodes"
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "export KUBECONFIG=~/.kube/config && echo 'SSH connection successful' && kubectl get nodes"
 
       - name: Copy k8s manifests to EC2
         run: |
@@ -70,6 +70,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ env.EC2_USER }}@${{ secrets.EC2_HOST }} "
             set -e
+            export KUBECONFIG=~/.kube/config
 
             DEPLOY_DIR=/home/${{ env.EC2_USER }}/ecommerce-deploy
             DOCKER_IMAGE=${{ env.DOCKER_IMAGE }}
