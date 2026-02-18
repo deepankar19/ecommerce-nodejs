@@ -100,7 +100,7 @@ export default function AccountPage() {
             <div className="text-center sm:text-left">
               <h1 className="text-2xl font-bold text-gray-900">John Doe</h1>
               <p className="text-muted text-sm">john.doe@example.com</p>
-              <p className="text-xs text-muted mt-1">Member since January 2026</p>
+              <p className="text-xs text-muted mt-1">Member since January 2026 </p>
             </div>
             <div className="sm:ml-auto flex gap-3">
               <Link
