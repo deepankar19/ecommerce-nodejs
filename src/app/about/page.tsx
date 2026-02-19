@@ -70,7 +70,7 @@ export default function AboutPage() {
             </h1>
             <p className="text-lg text-gray-300 leading-relaxed">
               Founded in 2020, ShopVerse has grown from a small startup to a
-              thriving marketplace serving thousands of happy customers worldwide.
+              thriving marketplace serving thousands of happy customers worldwide. pp
             </p>
           </div>
         </div>
