@@ -68,6 +68,14 @@ jobs:
             echo "=== Docker check ==="
             docker ps >/dev/null
 
+            echo "=== Checking Cluster ==="
+            if ! kind get clusters | grep -q "^${{ env.KIND_CLUSTER_NAME }}$"; then
+              echo "Cluster '${{ env.KIND_CLUSTER_NAME }}' not found. Creating..."
+              kind create cluster --name ${{ env.KIND_CLUSTER_NAME }}
+            else
+              echo "Cluster '${{ env.KIND_CLUSTER_NAME }}' exists."
+            fi
+
             echo "=== Export kubeconfig ==="
             mkdir -p ~/.kube
             kind export kubeconfig --name ${{ env.KIND_CLUSTER_NAME }}
