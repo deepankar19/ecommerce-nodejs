@@ -1,6 +1,20 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
+import { useToast } from "@/context/ToastContext";
 
 export default function Footer() {
+  const [email, setEmail] = useState("");
+  const { addToast } = useToast();
+
+  const handleNewsletterSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email) {
+      addToast("Thanks for subscribing! Check your inbox for a welcome discount.", "success");
+      setEmail("");
+    }
+  };
   return (
     <footer className="bg-gray-900 text-gray-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -56,10 +70,13 @@ export default function Footer() {
           <div>
             <h3 className="text-white font-semibold mb-4">Stay Updated</h3>
             <p className="text-sm mb-4">Subscribe to our newsletter for exclusive deals and new arrivals.</p>
-            <form className="flex gap-2">
+            <form className="flex gap-2" onSubmit={handleNewsletterSubmit}>
               <input
                 type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Your email"
+                required
                 className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary"
               />
               <button

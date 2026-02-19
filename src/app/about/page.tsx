@@ -8,7 +8,7 @@ const team = [
     image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&q=80",
   },
   {
-    name: "Michael Chen",
+    name: "Manoj Yadav",
     role: "Head of Design",
     image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&q=80",
   },
@@ -70,7 +70,7 @@ export default function AboutPage() {
             </h1>
             <p className="text-lg text-gray-300 leading-relaxed">
               Founded in 2020, ShopVerse has grown from a small startup to a
-              thriving marketplace serving thousands of happy customers worldwide. pp
+              thriving marketplace serving thousands of happy customers worldwide.
             </p>
           </div>
         </div>

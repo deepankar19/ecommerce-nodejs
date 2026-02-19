@@ -1,8 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { useWishlist } from "@/context/WishlistContext";
+import { useCart } from "@/context/CartContext";
+import { useToast } from "@/context/ToastContext";
+import { Suspense } from "react";
 
 const orders = [
   {
@@ -28,25 +33,32 @@ const orders = [
   },
 ];
 
-const wishlist = [
-  {
-    id: 1,
-    name: "Wireless Headphones",
-    price: 299.99,
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=80",
-  },
-  {
-    id: 6,
-    name: "Professional Yoga Mat",
-    price: 69.99,
-    image: "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=200&q=80",
-  },
-];
-
 type Tab = "overview" | "orders" | "wishlist" | "settings";
 
-export default function AccountPage() {
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
+function AccountContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as Tab | null;
+  const [activeTab, setActiveTab] = useState<Tab>(tabParam || "overview");
+  const { items: wishlistItems, removeFromWishlist } = useWishlist();
+  const { addToCart } = useCart();
+  const { addToast } = useToast();
+
+  useEffect(() => {
+    if (tabParam && ["overview", "orders", "wishlist", "settings"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleMoveToCart = (item: typeof wishlistItems[0]) => {
+    addToCart(item);
+    removeFromWishlist(item.id);
+    addToast(`${item.name} moved to cart!`, "success");
+  };
+
+  const handleRemoveFromWishlist = (item: typeof wishlistItems[0]) => {
+    removeFromWishlist(item.id);
+    addToast("Removed from wishlist", "info");
+  };
 
   const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
     {
@@ -69,7 +81,7 @@ export default function AccountPage() {
     },
     {
       key: "wishlist",
-      label: "Wishlist",
+      label: `Wishlist${wishlistItems.length > 0 ? ` (${wishlistItems.length})` : ""}`,
       icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
@@ -100,7 +112,7 @@ export default function AccountPage() {
             <div className="text-center sm:text-left">
               <h1 className="text-2xl font-bold text-gray-900">John Doe</h1>
               <p className="text-muted text-sm">john.doe@example.com</p>
-              <p className="text-xs text-muted mt-1">Member since January 2026 </p>
+              <p className="text-xs text-muted mt-1">Member since January 2025</p>
             </div>
             <div className="sm:ml-auto flex gap-3">
               <Link
@@ -152,7 +164,7 @@ export default function AccountPage() {
                   </div>
                   <div className="bg-white rounded-2xl p-6 border border-gray-100">
                     <p className="text-sm text-muted mb-1">Wishlist Items</p>
-                    <p className="text-2xl font-bold text-gray-900">5</p>
+                    <p className="text-2xl font-bold text-gray-900">{wishlistItems.length}</p>
                   </div>
                   <div className="bg-white rounded-2xl p-6 border border-gray-100">
                     <p className="text-sm text-muted mb-1">Total Spent</p>
@@ -190,6 +202,41 @@ export default function AccountPage() {
                     ))}
                   </div>
                 </div>
+
+                {/* Quick Wishlist Preview */}
+                {wishlistItems.length > 0 && (
+                  <div className="bg-white rounded-2xl p-6 border border-gray-100">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-bold text-gray-900">Wishlist Preview</h3>
+                      <button
+                        onClick={() => setActiveTab("wishlist")}
+                        className="text-sm text-primary font-medium hover:underline"
+                      >
+                        View All
+                      </button>
+                    </div>
+                    <div className="flex gap-3 overflow-x-auto pb-2">
+                      {wishlistItems.slice(0, 4).map((item) => (
+                        <Link
+                          key={item.id}
+                          href={`/shop/${item.id}`}
+                          className="shrink-0 w-20 group"
+                        >
+                          <div className="relative w-20 h-20 bg-gray-50 rounded-xl overflow-hidden mb-1">
+                            <Image
+                              src={item.image}
+                              alt={item.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform"
+                              sizes="80px"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-600 truncate">{item.name}</p>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -245,45 +292,92 @@ export default function AccountPage() {
               <div className="bg-white rounded-2xl border border-gray-100">
                 <div className="p-6 border-b border-gray-100">
                   <h2 className="text-xl font-bold text-gray-900">
-                    My Wishlist
+                    My Wishlist ({wishlistItems.length})
                   </h2>
                 </div>
-                <div className="divide-y divide-gray-100">
-                  {wishlist.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-6 flex items-center gap-4"
-                    >
-                      <div className="relative w-16 h-16 bg-gray-50 rounded-xl overflow-hidden shrink-0">
-                        <Image
-                          src={item.image}
-                          alt={item.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-gray-900 text-sm">
-                          {item.name}
-                        </p>
-                        <p className="text-primary font-bold text-sm">
-                          ${item.price.toFixed(2)}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/shop/${item.id}`}
-                          className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors"
-                        >
-                          View
+                {wishlistItems.length > 0 ? (
+                  <div className="divide-y divide-gray-100">
+                    {wishlistItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="p-6 flex items-center gap-4"
+                      >
+                        <Link href={`/shop/${item.id}`} className="relative w-16 h-16 bg-gray-50 rounded-xl overflow-hidden shrink-0 group">
+                          <Image
+                            src={item.image}
+                            alt={item.name}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform"
+                            sizes="64px"
+                          />
                         </Link>
-                        <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors">
-                          Remove
-                        </button>
+                        <div className="flex-1 min-w-0">
+                          <Link href={`/shop/${item.id}`} className="hover:text-primary transition-colors">
+                            <p className="font-semibold text-gray-900 text-sm truncate">
+                              {item.name}
+                            </p>
+                          </Link>
+                          <p className="text-primary font-bold text-sm">
+                            ${item.price.toFixed(2)}
+                            {item.originalPrice && (
+                              <span className="text-muted font-normal line-through ml-2 text-xs">
+                                ${item.originalPrice.toFixed(2)}
+                              </span>
+                            )}
+                          </p>
+                          <div className="flex items-center gap-1 mt-0.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${item.inStock ? "bg-green-500" : "bg-red-500"}`} />
+                            <span className={`text-xs ${item.inStock ? "text-green-600" : "text-red-600"}`}>
+                              {item.inStock ? "In Stock" : "Out of Stock"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          {item.inStock && (
+                            <button
+                              onClick={() => handleMoveToCart(item)}
+                              className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors"
+                            >
+                              Move to Cart
+                            </button>
+                          )}
+                          <Link
+                            href={`/shop/${item.id}`}
+                            className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                          >
+                            View
+                          </Link>
+                          <button
+                            onClick={() => handleRemoveFromWishlist(item)}
+                            className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-12 text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <svg className="w-8 h-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                      </svg>
                     </div>
-                  ))}
-                </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Your wishlist is empty
+                    </h3>
+                    <p className="text-muted text-sm mb-6">
+                      Browse our products and add your favorites here.
+                    </p>
+                    <Link
+                      href="/shop"
+                      className="inline-flex px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
+                    >
+                      Start Shopping
+                    </Link>
+                  </div>
+                )}
               </div>
             )}
 
@@ -339,6 +433,7 @@ export default function AccountPage() {
                     </div>
                     <button
                       type="button"
+                      onClick={() => addToast("Profile updated successfully!", "success")}
                       className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
                     >
                       Save Changes
@@ -380,6 +475,7 @@ export default function AccountPage() {
                     </div>
                     <button
                       type="button"
+                      onClick={() => addToast("Password updated successfully!", "success")}
                       className="px-6 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary-dark transition-colors"
                     >
                       Update Password
@@ -404,5 +500,19 @@ export default function AccountPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-muted">Loading...</div>
+        </div>
+      }
+    >
+      <AccountContent />
+    </Suspense>
   );
 }

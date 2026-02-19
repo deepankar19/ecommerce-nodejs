@@ -3,10 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useCart } from "@/context/CartContext";
+import { useToast } from "@/context/ToastContext";
 
 export default function CartPage() {
-  const { items, removeFromCart, updateQuantity, totalPrice, totalItems } =
+  const { items, removeFromCart, updateQuantity, totalPrice, totalItems, clearCart } =
     useCart();
+  const { addToast } = useToast();
 
   const shipping = totalPrice > 50 ? 0 : 9.99;
   const tax = totalPrice * 0.08;
@@ -38,8 +40,21 @@ export default function CartPage() {
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Shopping Cart</h1>
-        <p className="text-muted mb-8">{totalItems} items in your cart</p>
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Shopping Cart</h1>
+            <p className="text-muted">{totalItems} items in your cart</p>
+          </div>
+          <button
+            onClick={() => {
+              clearCart();
+              addToast("Cart cleared", "info");
+            }}
+            className="px-4 py-2 text-sm text-red-500 border border-red-200 rounded-xl hover:bg-red-50 transition-colors font-medium"
+          >
+            Clear Cart
+          </button>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
@@ -75,7 +90,10 @@ export default function CartPage() {
                       </p>
                     </div>
                     <button
-                      onClick={() => removeFromCart(item.product.id)}
+                      onClick={() => {
+                        removeFromCart(item.product.id);
+                        addToast(`${item.product.name} removed from cart`, "info");
+                      }}
                       className="text-gray-400 hover:text-red-500 transition-colors shrink-0"
                     >
                       <svg
