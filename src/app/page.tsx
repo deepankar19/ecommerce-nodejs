@@ -13,7 +13,7 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white overflow-hidden">
+      <section className="relative bg-gradient-to-br from-green-600 via-green-700 to-emerald-800 text-white overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
           <div className="absolute bottom-10 right-10 w-96 h-96 bg-yellow-300 rounded-full blur-3xl" />
@@ -28,14 +28,14 @@ export default function HomePage() {
                 Discover Your
                 <span className="text-yellow-300"> Perfect Style</span>
               </h1>
-              <p className="text-lg text-blue-100 mb-8 max-w-lg leading-relaxed">
+              <p className="text-lg text-green-100 mb-8 max-w-lg leading-relaxed">
                 Explore our curated collection of premium products. From tech gadgets
                 to fashion essentials, find everything you need in one place.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Link
                   href="/shop"
-                  className="px-8 py-3.5 bg-white text-blue-700 rounded-full font-semibold hover:bg-yellow-300 hover:text-blue-900 transition-all duration-300 shadow-lg hover:shadow-xl"
+                  className="px-8 py-3.5 bg-white text-green-700 rounded-full font-semibold hover:bg-yellow-300 hover:text-green-900 transition-all duration-300 shadow-lg hover:shadow-xl"
                 >
                   Shop Now
                 </Link>
@@ -49,17 +49,17 @@ export default function HomePage() {
               <div className="flex items-center gap-8 mt-10">
                 <div>
                   <p className="text-2xl font-bold">10K+</p>
-                  <p className="text-sm text-blue-200">Happy Customers</p>
+                  <p className="text-sm text-green-200">Happy Customers</p>
                 </div>
                 <div className="w-px h-10 bg-white/30" />
                 <div>
                   <p className="text-2xl font-bold">500+</p>
-                  <p className="text-sm text-blue-200">Products</p>
+                  <p className="text-sm text-green-200">Products</p>
                 </div>
                 <div className="w-px h-10 bg-white/30" />
                 <div>
                   <p className="text-2xl font-bold">4.9</p>
-                  <p className="text-sm text-blue-200">Star Rating</p>
+                  <p className="text-sm text-green-200">Star Rating</p>
                 </div>
               </div>
             </div>
@@ -152,9 +152,9 @@ export default function HomePage() {
       </section>
 
       {/* Promo Banner */}
-      <section className="py-20 bg-gradient-to-r from-amber-50 to-orange-50">
+      <section className="py-20 bg-gradient-to-r from-green-50 to-emerald-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-orange-500 to-pink-500 rounded-3xl p-8 lg:p-16 text-white text-center relative overflow-hidden">
+          <div className="bg-gradient-to-r from-green-500 to-emerald-500 rounded-3xl p-8 lg:p-16 text-white text-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
             <div className="relative z-10">
@@ -164,13 +164,13 @@ export default function HomePage() {
               <h2 className="text-3xl lg:text-5xl font-bold mb-4">
                 Up to 40% Off
               </h2>
-              <p className="text-lg text-orange-100 mb-8 max-w-2xl mx-auto">
+              <p className="text-lg text-green-100 mb-8 max-w-2xl mx-auto">
                 Don&apos;t miss out on our biggest sale of the season. Premium products
                 at unbeatable prices.
               </p>
               <Link
                 href="/shop"
-                className="inline-flex px-8 py-3.5 bg-white text-orange-600 rounded-full font-semibold hover:bg-orange-50 transition-all shadow-lg"
+                className="inline-flex px-8 py-3.5 bg-white text-green-600 rounded-full font-semibold hover:bg-green-50 transition-all shadow-lg"
               >
                 Shop the Sale
               </Link>
